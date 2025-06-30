@@ -3,6 +3,7 @@ import { View, Text, StyleSheet } from 'react-native';
 import CircularProgress from './CircularProgress';
 import { formatTime } from '@/utils/timeUtils';
 import { TimerPhase } from '@/context/PomodoroContext';
+import { useTranslation } from 'react-i18next';
 
 interface TimerDisplayProps {
   timeRemaining: number;
@@ -19,6 +20,7 @@ const TimerDisplay: React.FC<TimerDisplayProps> = ({
   sessionCount,
   totalSessions,
 }) => {
+  const { t } = useTranslation();
   // Set color based on current phase
   const getPhaseColor = () => {
     switch (phase) {
@@ -32,26 +34,26 @@ const TimerDisplay: React.FC<TimerDisplayProps> = ({
         return '#6366f1';
     }
   };
-  
+
   const getPhaseTitle = () => {
     switch (phase) {
       case 'focus':
-        return 'Focus Time';
+        return t('Focus Time');
       case 'shortBreak':
-        return 'Short Break';
+        return t('Short Break');
       case 'longBreak':
-        return 'Long Break';
+        return t('Long Break');
       default:
-        return 'Focus Time';
+        return t('Focus Time');
     }
   };
-  
+
   const phaseColor = getPhaseColor();
-  
+
   return (
     <View style={styles.container}>
       <Text style={styles.phaseTitle}>{getPhaseTitle()}</Text>
-      
+
       <View style={styles.timerContainer}>
         <CircularProgress
           progress={progress}
@@ -63,7 +65,7 @@ const TimerDisplay: React.FC<TimerDisplayProps> = ({
           <Text style={styles.timeText}>{formatTime(timeRemaining)}</Text>
         </View>
       </View>
-      
+
       {phase === 'focus' && (
         <View style={styles.sessionIndicator}>
           <Text style={styles.sessionText}>

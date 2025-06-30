@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -12,13 +12,13 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { usePomodoro } from '@/context/PomodoroContext';
 import { useAppSettings } from '@/context/AppSettingsContext';
-import { Minus, Plus, Moon, Sun, Monitor } from 'lucide-react-native';
+import { Minus, Plus, Moon, Sun, Monitor, Volume2, VolumeX } from 'lucide-react-native';
 import { useTranslation } from 'react-i18next';
 import Slider from '@/components/PlatformSlider';
 
 export default function SettingsScreen() {
   const { settings: pomodoroSettings, updateSettings: updatePomodoroSettings } = usePomodoro();
-  const { settings: appSettings, updateSettings: updateAppSettings, isDarkMode, playAlarm, stopAlarm } = useAppSettings();
+  const { settings: appSettings, updateSettings: updateAppSettings, isDarkMode, playAlarm, stopAlarm, sound } = useAppSettings();
   const { t, i18n } = useTranslation();
 
   // Local state for settings sliders
@@ -80,6 +80,16 @@ export default function SettingsScreen() {
     { value: 'digital', label: t('Digital') },
     { value: 'gentle', label: t('Gentle') },
   ];
+
+  // Pastikan icon langsung update setelah stopAlarm
+  useEffect(() => { }, [sound]);
+
+  // Update volume secara realtime saat slider diubah dan sound sedang aktif
+  useEffect(() => {
+    if (sound && sound.setVolumeAsync) {
+      sound.setVolumeAsync(appSettings.alarmVolume);
+    }
+  }, [appSettings.alarmVolume, sound]);
 
   return (
     <SafeAreaView style={containerStyle}>
@@ -169,7 +179,68 @@ export default function SettingsScreen() {
             </View>
           </View>
 
-          {/* Similar modifications for other timer settings... */}
+          <View style={[styles.settingItem, isDarkMode && styles.settingItemDark]}>
+            <Text style={[styles.settingLabel, isDarkMode && styles.settingLabelDark]}>{t('Short Break')}</Text>
+            <View style={styles.settingControl}>
+              <TouchableOpacity
+                style={[styles.button, isDarkMode && styles.buttonDark]}
+                onPress={() => handleNumberChange(setShortBreakDuration, shortBreakDuration - 1, 1, 30)}
+              >
+                <Minus size={16} color={isDarkMode ? '#fff' : '#10b981'} />
+              </TouchableOpacity>
+
+              <Text style={[styles.valueText, isDarkMode && styles.valueTextDark]}>{shortBreakDuration} min</Text>
+
+              <TouchableOpacity
+                style={[styles.button, isDarkMode && styles.buttonDark]}
+                onPress={() => handleNumberChange(setShortBreakDuration, shortBreakDuration + 1, 1, 30)}
+              >
+                <Plus size={16} color={isDarkMode ? '#fff' : '#10b981'} />
+              </TouchableOpacity>
+            </View>
+          </View>
+
+          <View style={[styles.settingItem, isDarkMode && styles.settingItemDark]}>
+            <Text style={[styles.settingLabel, isDarkMode && styles.settingLabelDark]}>{t('Long Break')}</Text>
+            <View style={styles.settingControl}>
+              <TouchableOpacity
+                style={[styles.button, isDarkMode && styles.buttonDark]}
+                onPress={() => handleNumberChange(setLongBreakDuration, longBreakDuration - 1, 1, 60)}
+              >
+                <Minus size={16} color={isDarkMode ? '#fff' : '#0ea5e9'} />
+              </TouchableOpacity>
+
+              <Text style={[styles.valueText, isDarkMode && styles.valueTextDark]}>{longBreakDuration} min</Text>
+
+              <TouchableOpacity
+                style={[styles.button, isDarkMode && styles.buttonDark]}
+                onPress={() => handleNumberChange(setLongBreakDuration, longBreakDuration + 1, 1, 60)}
+              >
+                <Plus size={16} color={isDarkMode ? '#fff' : '#0ea5e9'} />
+              </TouchableOpacity>
+            </View>
+          </View>
+
+          <View style={[styles.settingItem, isDarkMode && styles.settingItemDark]}>
+            <Text style={[styles.settingLabel, isDarkMode && styles.settingLabelDark]}>{t('Sessions Before Long Break')}</Text>
+            <View style={styles.settingControl}>
+              <TouchableOpacity
+                style={[styles.button, isDarkMode && styles.buttonDark]}
+                onPress={() => handleNumberChange(setSessionsBeforeLongBreak, sessionsBeforeLongBreak - 1, 1, 10)}
+              >
+                <Minus size={16} color={isDarkMode ? '#fff' : '#6366f1'} />
+              </TouchableOpacity>
+
+              <Text style={[styles.valueText, isDarkMode && styles.valueTextDark]}>{sessionsBeforeLongBreak}</Text>
+
+              <TouchableOpacity
+                style={[styles.button, isDarkMode && styles.buttonDark]}
+                onPress={() => handleNumberChange(setSessionsBeforeLongBreak, sessionsBeforeLongBreak + 1, 1, 10)}
+              >
+                <Plus size={16} color={isDarkMode ? '#fff' : '#6366f1'} />
+              </TouchableOpacity>
+            </View>
+          </View>
         </View>
 
         <View style={styles.section}>
@@ -183,7 +254,10 @@ export default function SettingsScreen() {
                   appSettings.alarmSound === sound.value && styles.alarmButtonActive,
                   isDarkMode && styles.alarmButtonDark,
                 ]}
-                onPress={() => updateAppSettings({ alarmSound: sound.value })}
+                onPress={() => {
+                  updateAppSettings({ alarmSound: sound.value });
+                  if (sound) stopAlarm();
+                }}
               >
                 <Text style={[
                   styles.alarmButtonText,
@@ -196,19 +270,20 @@ export default function SettingsScreen() {
             ))}
             <TouchableOpacity
               style={[styles.alarmButton, styles.testButton, isDarkMode && styles.alarmButtonDark]}
-              onPress={playAlarm}
+              onPress={async () => {
+                if (sound) {
+                  await stopAlarm();
+                } else {
+                  await playAlarm();
+                }
+              }}
+              accessibilityLabel={sound ? t('Stop Sound') : t('Test Sound')}
             >
-              <Text style={[styles.alarmButtonText, isDarkMode && styles.alarmButtonTextDark]}>
-                {t('Test Sound')}
-              </Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={[styles.alarmButton, styles.testButton, isDarkMode && styles.alarmButtonDark]}
-              onPress={stopAlarm}
-            >
-              <Text style={[styles.alarmButtonText, isDarkMode && styles.alarmButtonTextDark]}>
-                {t('Stop')}
-              </Text>
+              {sound ? (
+                <VolumeX size={20} color="#ef4444" />
+              ) : (
+                <Volume2 size={20} color={isDarkMode ? '#fff' : '#6366f1'} />
+              )}
             </TouchableOpacity>
           </View>
 
@@ -304,6 +379,8 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontFamily: 'Poppins-Regular',
     color: '#334155',
+    flexShrink: 1,
+    flexWrap: 'wrap',
   },
   settingLabelDark: {
     color: '#e2e8f0',

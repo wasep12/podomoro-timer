@@ -3,43 +3,45 @@ import { View, Text, StyleSheet, ScrollView } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { usePomodoro } from '@/context/PomodoroContext';
 import { Clock, Calendar, Timer } from 'lucide-react-native';
+import { useTranslation } from 'react-i18next';
 
 export default function StatisticsScreen() {
   const { stats } = usePomodoro();
-  
+  const { t } = useTranslation();
+
   const statCards = [
     {
-      title: 'Focus Sessions',
+      title: t('Focus Sessions'),
       value: stats.completedFocus,
       icon: <Timer size={24} color="#6366f1" />,
       color: '#ede9fe',
     },
     {
-      title: 'Short Breaks',
+      title: t('Short Breaks'),
       value: stats.completedShortBreaks,
       icon: <Clock size={24} color="#10b981" />,
       color: '#ecfdf5',
     },
     {
-      title: 'Long Breaks',
+      title: t('Long Breaks'),
       value: stats.completedLongBreaks,
       icon: <Calendar size={24} color="#0ea5e9" />,
       color: '#f0f9ff',
     },
     {
-      title: 'Total Focus Time',
+      title: t('Total Focus Time'),
       value: `${stats.totalFocusTime} min`,
       icon: <Clock size={24} color="#8b5cf6" />,
       color: '#f5f3ff',
     },
   ];
-  
+
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.title}>Statistics</Text>
+        <Text style={styles.title}>{t('Statistics')}</Text>
       </View>
-      
+
       <ScrollView
         style={styles.scrollView}
         contentContainerStyle={styles.scrollContent}
@@ -57,15 +59,15 @@ export default function StatisticsScreen() {
             </View>
           ))}
         </View>
-        
+
         <View style={styles.summary}>
           <View style={styles.summaryHeader}>
-            <Text style={styles.summaryTitle}>Summary</Text>
+            <Text style={styles.summaryTitle}>{t('Summary')}</Text>
           </View>
-          
+
           <View style={styles.summaryContent}>
             <View style={styles.summaryItem}>
-              <Text style={styles.summaryLabel}>Average Focus Time</Text>
+              <Text style={styles.summaryLabel}>{t('Average Focus Time')}</Text>
               <Text style={styles.summaryValue}>
                 {stats.completedFocus > 0
                   ? Math.round(stats.totalFocusTime / stats.completedFocus)
@@ -73,28 +75,28 @@ export default function StatisticsScreen() {
                 min
               </Text>
             </View>
-            
+
             <View style={styles.summaryItem}>
-              <Text style={styles.summaryLabel}>Total Sessions</Text>
+              <Text style={styles.summaryLabel}>{t('Total Sessions')}</Text>
               <Text style={styles.summaryValue}>
                 {stats.completedFocus + stats.completedShortBreaks + stats.completedLongBreaks}
               </Text>
             </View>
-            
+
             <View style={styles.summaryItem}>
-              <Text style={styles.summaryLabel}>Productivity Score</Text>
+              <Text style={styles.summaryLabel}>{t('Productivity Score')}</Text>
               <Text style={styles.summaryValue}>
                 {stats.completedFocus > 0
                   ? Math.min(
-                      100,
-                      Math.round(
-                        (stats.completedFocus /
-                          (stats.completedFocus +
-                            Math.max(0, stats.completedShortBreaks - stats.completedFocus) * 0.5 +
-                            Math.max(0, stats.completedLongBreaks - stats.completedFocus / 4) * 0.25)) *
-                          100
-                      )
+                    100,
+                    Math.round(
+                      (stats.completedFocus /
+                        (stats.completedFocus +
+                          Math.max(0, stats.completedShortBreaks - stats.completedFocus) * 0.5 +
+                          Math.max(0, stats.completedLongBreaks - stats.completedFocus / 4) * 0.25)) *
+                      100
                     )
+                  )
                   : 0}
                 %
               </Text>
