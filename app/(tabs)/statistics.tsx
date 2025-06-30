@@ -4,10 +4,12 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { usePomodoro } from '@/context/PomodoroContext';
 import { Clock, Calendar, Timer } from 'lucide-react-native';
 import { useTranslation } from 'react-i18next';
+import { useAppSettings } from '@/context/AppSettingsContext';
 
 export default function StatisticsScreen() {
   const { stats } = usePomodoro();
   const { t } = useTranslation();
+  const { isDarkMode } = useAppSettings();
 
   const statCards = [
     {
@@ -37,9 +39,9 @@ export default function StatisticsScreen() {
   ];
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={[styles.container, isDarkMode && styles.containerDark]}>
       <View style={styles.header}>
-        <Text style={styles.title}>{t('Statistics')}</Text>
+        <Text style={[styles.title, isDarkMode && styles.titleDark]}>{t('Statistics')}</Text>
       </View>
 
       <ScrollView
@@ -51,24 +53,24 @@ export default function StatisticsScreen() {
           {statCards.map((stat, index) => (
             <View
               key={index}
-              style={[styles.statCard, { backgroundColor: stat.color }]}
+              style={[styles.statCard, { backgroundColor: stat.color }, isDarkMode && styles.statCardDark]}
             >
               <View style={styles.statIcon}>{stat.icon}</View>
-              <Text style={styles.statTitle}>{stat.title}</Text>
-              <Text style={styles.statValue}>{stat.value}</Text>
+              <Text style={[styles.statTitle, isDarkMode && styles.statTitleDark]}>{stat.title}</Text>
+              <Text style={[styles.statValue, isDarkMode && styles.statValueDark]}>{stat.value}</Text>
             </View>
           ))}
         </View>
 
-        <View style={styles.summary}>
-          <View style={styles.summaryHeader}>
-            <Text style={styles.summaryTitle}>{t('Summary')}</Text>
+        <View style={[styles.summary, isDarkMode && styles.summaryDark]}>
+          <View style={[styles.summaryHeader, isDarkMode && styles.summaryHeaderDark]}>
+            <Text style={[styles.summaryTitle, isDarkMode && styles.summaryTitleDark]}>{t('Summary')}</Text>
           </View>
 
           <View style={styles.summaryContent}>
             <View style={styles.summaryItem}>
-              <Text style={styles.summaryLabel}>{t('Average Focus Time')}</Text>
-              <Text style={styles.summaryValue}>
+              <Text style={[styles.summaryLabel, isDarkMode && styles.summaryLabelDark]}>{t('Average Focus Time')}</Text>
+              <Text style={[styles.summaryValue, isDarkMode && styles.summaryValueDark]}>
                 {stats.completedFocus > 0
                   ? Math.round(stats.totalFocusTime / stats.completedFocus)
                   : 0}{' '}
@@ -77,15 +79,15 @@ export default function StatisticsScreen() {
             </View>
 
             <View style={styles.summaryItem}>
-              <Text style={styles.summaryLabel}>{t('Total Sessions')}</Text>
-              <Text style={styles.summaryValue}>
+              <Text style={[styles.summaryLabel, isDarkMode && styles.summaryLabelDark]}>{t('Total Sessions')}</Text>
+              <Text style={[styles.summaryValue, isDarkMode && styles.summaryValueDark]}>
                 {stats.completedFocus + stats.completedShortBreaks + stats.completedLongBreaks}
               </Text>
             </View>
 
             <View style={styles.summaryItem}>
-              <Text style={styles.summaryLabel}>{t('Productivity Score')}</Text>
-              <Text style={styles.summaryValue}>
+              <Text style={[styles.summaryLabel, isDarkMode && styles.summaryLabelDark]}>{t('Productivity Score')}</Text>
+              <Text style={[styles.summaryValue, isDarkMode && styles.summaryValueDark]}>
                 {stats.completedFocus > 0
                   ? Math.min(
                     100,
@@ -113,6 +115,9 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#ffffff',
   },
+  containerDark: {
+    backgroundColor: '#18181b',
+  },
   header: {
     paddingTop: 16,
     paddingHorizontal: 24,
@@ -125,6 +130,9 @@ const styles = StyleSheet.create({
     fontSize: 28,
     fontFamily: 'Poppins-SemiBold',
     color: '#1e293b',
+  },
+  titleDark: {
+    color: '#f1f5f9',
   },
   scrollView: {
     flex: 1,
@@ -144,6 +152,9 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     marginBottom: 16,
   },
+  statCardDark: {
+    backgroundColor: '#27272a',
+  },
   statIcon: {
     marginBottom: 12,
   },
@@ -153,24 +164,39 @@ const styles = StyleSheet.create({
     color: '#64748b',
     marginBottom: 4,
   },
+  statTitleDark: {
+    color: '#a5b4fc',
+  },
   statValue: {
     fontSize: 24,
     fontFamily: 'Poppins-Bold',
     color: '#1e293b',
+  },
+  statValueDark: {
+    color: '#f1f5f9',
   },
   summary: {
     backgroundColor: '#f8fafc',
     borderRadius: 16,
     overflow: 'hidden',
   },
+  summaryDark: {
+    backgroundColor: '#23272f',
+  },
   summaryHeader: {
     backgroundColor: '#f1f5f9',
     padding: 16,
+  },
+  summaryHeaderDark: {
+    backgroundColor: '#18181b',
   },
   summaryTitle: {
     fontSize: 18,
     fontFamily: 'Poppins-SemiBold',
     color: '#334155',
+  },
+  summaryTitleDark: {
+    color: '#a5b4fc',
   },
   summaryContent: {
     padding: 16,
@@ -188,9 +214,15 @@ const styles = StyleSheet.create({
     fontFamily: 'Poppins-Regular',
     color: '#475569',
   },
+  summaryLabelDark: {
+    color: '#cbd5e1',
+  },
   summaryValue: {
     fontSize: 16,
     fontFamily: 'Poppins-SemiBold',
     color: '#334155',
+  },
+  summaryValueDark: {
+    color: '#f1f5f9',
   },
 });

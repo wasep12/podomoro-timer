@@ -113,7 +113,7 @@ npx eas build -p ios
 
 ## 📝 Lisensi
 
-MIT
+Aplikasi ini dirilis di bawah lisensi MIT. Silakan lihat file [LICENSE](./LICENSE) untuk detailnya.
 
 ---
 

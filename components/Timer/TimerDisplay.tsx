@@ -4,6 +4,7 @@ import CircularProgress from './CircularProgress';
 import { formatTime } from '@/utils/timeUtils';
 import { TimerPhase } from '@/context/PomodoroContext';
 import { useTranslation } from 'react-i18next';
+import { useAppSettings } from '@/context/AppSettingsContext';
 
 interface TimerDisplayProps {
   timeRemaining: number;
@@ -21,6 +22,7 @@ const TimerDisplay: React.FC<TimerDisplayProps> = ({
   totalSessions,
 }) => {
   const { t } = useTranslation();
+  const { isDarkMode } = useAppSettings();
   // Set color based on current phase
   const getPhaseColor = () => {
     switch (phase) {
@@ -62,7 +64,7 @@ const TimerDisplay: React.FC<TimerDisplayProps> = ({
           color={phaseColor}
         />
         <View style={styles.timeTextContainer}>
-          <Text style={styles.timeText}>{formatTime(timeRemaining)}</Text>
+          <Text style={[styles.timeText, isDarkMode && styles.timeTextDark]}>{formatTime(timeRemaining)}</Text>
         </View>
       </View>
 
@@ -102,6 +104,9 @@ const styles = StyleSheet.create({
     fontSize: 48,
     fontFamily: 'Poppins-Bold',
     color: '#1e293b',
+  },
+  timeTextDark: {
+    color: '#fff',
   },
   sessionIndicator: {
     marginTop: 20,

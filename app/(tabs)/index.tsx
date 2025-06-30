@@ -5,13 +5,14 @@ import { usePomodoro } from '@/context/PomodoroContext';
 import TimerDisplay from '@/components/Timer/TimerDisplay';
 import TimerControls from '@/components/Timer/TimerControls';
 import { useKeepAwake } from 'expo-keep-awake';
+import { useAppSettings } from '@/context/AppSettingsContext';
 
 export default function TimerScreen() {
   // Keep screen awake during active pomodoro sessions only on native platforms
   if (Platform.OS !== 'web') {
     useKeepAwake();
   }
-  
+
   const {
     timeRemaining,
     progress,
@@ -25,21 +26,25 @@ export default function TimerScreen() {
     skipToNext,
     settings,
   } = usePomodoro();
-  
+  const { isDarkMode } = useAppSettings();
+
   // Set background color based on current phase
   const getBackgroundStyle = () => {
+    if (isDarkMode) {
+      return { backgroundColor: '#18181b' };
+    }
     switch (currentPhase) {
       case 'focus':
-        return { backgroundColor: '#f5f3ff' }; // Light indigo
+        return { backgroundColor: '#f5f3ff' };
       case 'shortBreak':
-        return { backgroundColor: '#ecfdf5' }; // Light emerald
+        return { backgroundColor: '#ecfdf5' };
       case 'longBreak':
-        return { backgroundColor: '#f0f9ff' }; // Light sky
+        return { backgroundColor: '#f0f9ff' };
       default:
         return { backgroundColor: '#f5f3ff' };
     }
   };
-  
+
   // Update document title for web
   useEffect(() => {
     if (Platform.OS === 'web') {
@@ -48,18 +53,18 @@ export default function TimerScreen() {
         shortBreak: '☕ Short Break',
         longBreak: '🌴 Long Break',
       };
-      
+
       document.title = `${timeRemaining > 0 ? formatTime(timeRemaining) : '00:00'} - ${phaseLabels[currentPhase]} | Pomodoro Timer`;
     }
   }, [timeRemaining, currentPhase]);
-  
+
   // Helper to format time for display
   const formatTime = (seconds: number) => {
     const minutes = Math.floor(seconds / 60);
     const remainingSeconds = seconds % 60;
     return `${minutes}:${remainingSeconds < 10 ? '0' : ''}${remainingSeconds}`;
   };
-  
+
   return (
     <SafeAreaView style={[styles.container, getBackgroundStyle()]}>
       <ScrollView
@@ -67,9 +72,9 @@ export default function TimerScreen() {
         showsVerticalScrollIndicator={false}
       >
         <View style={styles.header}>
-          <Text style={styles.title}>Pomodoro Timer</Text>
+          <Text style={[styles.title, isDarkMode && styles.titleDark]}>Pomodoro Timer</Text>
         </View>
-        
+
         <View style={styles.timerSection}>
           <TimerDisplay
             timeRemaining={timeRemaining}
@@ -78,7 +83,7 @@ export default function TimerScreen() {
             sessionCount={sessionCount}
             totalSessions={settings.sessionsBeforeLongBreak}
           />
-          
+
           <TimerControls
             isRunning={isRunning}
             isPaused={isPaused}
@@ -112,6 +117,9 @@ const styles = StyleSheet.create({
     fontFamily: 'Poppins-SemiBold',
     color: '#1e293b',
     textAlign: 'center',
+  },
+  titleDark: {
+    color: '#f1f5f9',
   },
   timerSection: {
     flex: 1,
