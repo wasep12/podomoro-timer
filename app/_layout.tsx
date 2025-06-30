@@ -1,3 +1,4 @@
+import 'intl-pluralrules';
 import { useEffect } from 'react';
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
@@ -13,11 +14,7 @@ import {
 } from '@expo-google-fonts/poppins';
 import { SplashScreen } from 'expo-router';
 import '../i18n';
-
-// Polyfill for Intl.PluralRules for i18next in web
-if (typeof window !== 'undefined' && typeof Intl.PluralRules === 'undefined') {
-  require('intl-pluralrules');
-}
+import Toast from 'react-native-toast-message';
 
 // Prevent splash screen from auto-hiding
 SplashScreen.preventAutoHideAsync();
@@ -51,6 +48,7 @@ export default function RootLayout() {
           <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
           <Stack.Screen name="+not-found" options={{ title: 'Oops!' }} />
         </Stack>
+        <Toast />
         <StatusBar style="auto" />
       </PomodoroProvider>
     </AppSettingsProvider>

@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useColorScheme } from 'react-native';
 import * as Notifications from 'expo-notifications';
@@ -47,6 +47,7 @@ export const AppSettingsProvider: React.FC<{ children: React.ReactNode }> = ({ c
   const [settings, setSettings] = useState<AppSettings>(defaultSettings);
   const systemColorScheme = useColorScheme();
   const [sound, setSound] = useState<Audio.Sound | null>(null);
+  const soundRef = useRef<Audio.Sound | null>(null);
 
   // Calculate dark mode based on settings and system preference
   const isDarkMode =
@@ -111,12 +112,15 @@ export const AppSettingsProvider: React.FC<{ children: React.ReactNode }> = ({ c
       webAudio.volume = settings.alarmVolume;
       webAudio.loop = true;
       webAudio.play();
+      console.log('playAlarm (web): play', src);
       return;
     }
     try {
-      if (sound) {
-        await sound.stopAsync();
-        await sound.unloadAsync();
+      if (soundRef.current) {
+        console.log('playAlarm: stop & unload previous sound (ref)', soundRef.current);
+        await soundRef.current.stopAsync();
+        await soundRef.current.unloadAsync();
+        soundRef.current = null;
       }
       if (Audio) {
         const { sound: newSound } = await Audio.Sound.createAsync(
@@ -127,7 +131,9 @@ export const AppSettingsProvider: React.FC<{ children: React.ReactNode }> = ({ c
             isLooping: true,
           }
         );
+        soundRef.current = newSound;
         setSound(newSound);
+        console.log('playAlarm: new sound instance created (ref)', newSound);
         // Show notification on mobile
         if (Platform.OS !== 'web' && settings.notificationsEnabled) {
           await Notifications.scheduleNotificationAsync({
@@ -145,18 +151,30 @@ export const AppSettingsProvider: React.FC<{ children: React.ReactNode }> = ({ c
   };
 
   const stopAlarm = async () => {
+    console.log('stopAlarm dipanggil, current soundRef:', soundRef.current);
     if (Platform.OS === 'web') {
       if (webAudio) {
         webAudio.pause();
         webAudio.currentTime = 0;
         webAudio = null;
+        console.log('stopAlarm (web): webAudio stopped');
       }
       return;
     }
-    if (sound) {
-      await sound.stopAsync();
-      await sound.unloadAsync();
+    try {
+      if (soundRef.current) {
+        await soundRef.current.stopAsync();
+        await soundRef.current.unloadAsync();
+        console.log('stopAlarm: soundRef stopped & unloaded', soundRef.current);
+        soundRef.current = null;
+      } else {
+        console.log('stopAlarm: no soundRef instance to stop');
+      }
+    } catch (error) {
+      console.error('Error stopping alarm:', error);
+    } finally {
       setSound(null);
+      console.log('stopAlarm: setSound(null)');
     }
   };
 

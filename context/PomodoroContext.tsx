@@ -1,5 +1,7 @@
 import React, { createContext, useState, useContext, useEffect } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useAppSettings } from './AppSettingsContext';
+import { Platform } from 'react';
 
 export type TimerPhase = 'focus' | 'shortBreak' | 'longBreak';
 
@@ -28,13 +30,15 @@ interface PomodoroContextType {
   timeRemaining: number; // in seconds
   sessionCount: number;
   progress: number; // 0 to 1
-  
+
   startTimer: () => void;
   pauseTimer: () => void;
   resetTimer: () => void;
   skipToNext: () => void;
-  
+
   updateSettings: (newSettings: Partial<PomodoroSettings>) => void;
+  isAlarmActive: boolean;
+  handleAcknowledgeAlarm: () => void;
 }
 
 const defaultSettings: PomodoroSettings = {
@@ -64,7 +68,15 @@ export const PomodoroProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   const [timeRemaining, setTimeRemaining] = useState(defaultSettings.focusDuration * 60);
   const [sessionCount, setSessionCount] = useState(0);
   const [lastTick, setLastTick] = useState(Date.now());
-  
+  const [isAlarmActive, setIsAlarmActive] = useState(false);
+
+  // Get playAlarm function from AppSettings context
+  const { playAlarm, stopAlarm } = useAppSettings();
+
+  // Simpan next phase dan stats sementara saat alarm aktif
+  const [pendingPhase, setPendingPhase] = useState<TimerPhase | null>(null);
+  const [pendingStats, setPendingStats] = useState<any>(null);
+
   // Load settings and stats from AsyncStorage
   useEffect(() => {
     const loadData = async () => {
@@ -73,7 +85,7 @@ export const PomodoroProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         if (savedSettings) {
           setSettings(JSON.parse(savedSettings));
         }
-        
+
         const savedStats = await AsyncStorage.getItem('pomodoroStats');
         if (savedStats) {
           setStats(JSON.parse(savedStats));
@@ -82,10 +94,10 @@ export const PomodoroProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         console.error('Failed to load data from storage:', error);
       }
     };
-    
+
     loadData();
   }, []);
-  
+
   // Save settings when they change
   useEffect(() => {
     const saveSettings = async () => {
@@ -95,10 +107,10 @@ export const PomodoroProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         console.error('Failed to save settings:', error);
       }
     };
-    
+
     saveSettings();
   }, [settings]);
-  
+
   // Save stats when they change
   useEffect(() => {
     const saveStats = async () => {
@@ -108,14 +120,14 @@ export const PomodoroProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         console.error('Failed to save stats:', error);
       }
     };
-    
+
     saveStats();
   }, [stats]);
-  
+
   // Reset timer when changing phases
   useEffect(() => {
     let newDuration = 0;
-    
+
     switch (currentPhase) {
       case 'focus':
         newDuration = settings.focusDuration * 60;
@@ -127,75 +139,94 @@ export const PomodoroProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         newDuration = settings.longBreakDuration * 60;
         break;
     }
-    
+
     setTimeRemaining(newDuration);
   }, [currentPhase, settings]);
-  
+
   // Timer logic
   useEffect(() => {
     if (!isRunning) return;
-    
+
     const intervalId = setInterval(() => {
       const now = Date.now();
       const delta = Math.floor((now - lastTick) / 1000);
       setLastTick(now);
-      
+
       setTimeRemaining((prev) => {
         const newTime = Math.max(0, prev - delta);
-        
+
         // Timer completed
         if (newTime === 0) {
           handleTimerComplete();
           return 0;
         }
-        
+
         return newTime;
       });
     }, 1000);
-    
+
     return () => clearInterval(intervalId);
   }, [isRunning, lastTick]);
-  
+
   const handleTimerComplete = () => {
     setIsRunning(false);
-    
-    // Update stats based on completed phase
+    if (!isAlarmActive) {
+      setIsAlarmActive(true);
+      playAlarm();
+      console.log('handleTimerComplete: playAlarm dipanggil');
+    } else {
+      console.log('handleTimerComplete: playAlarm tidak dipanggil karena alarm sudah aktif');
+    }
+    // Simpan perubahan phase dan stats yang akan dieksekusi setelah acknowledge
+    let nextPhase: TimerPhase = currentPhase;
+    let statsUpdate: any = null;
     switch (currentPhase) {
       case 'focus':
-        setStats((prev) => ({
-          ...prev,
-          completedFocus: prev.completedFocus + 1,
-          totalFocusTime: prev.totalFocusTime + settings.focusDuration,
-        }));
-        
-        // Determine next phase
+        statsUpdate = {
+          completedFocus: stats.completedFocus + 1,
+          totalFocusTime: stats.totalFocusTime + settings.focusDuration,
+        };
         if ((sessionCount + 1) % settings.sessionsBeforeLongBreak === 0) {
-          setCurrentPhase('longBreak');
+          nextPhase = 'longBreak';
         } else {
-          setCurrentPhase('shortBreak');
+          nextPhase = 'shortBreak';
         }
-        
-        setSessionCount((prev) => prev + 1);
         break;
-      
       case 'shortBreak':
-        setStats((prev) => ({
-          ...prev,
-          completedShortBreaks: prev.completedShortBreaks + 1,
-        }));
-        setCurrentPhase('focus');
+        statsUpdate = {
+          completedShortBreaks: stats.completedShortBreaks + 1,
+        };
+        nextPhase = 'focus';
         break;
-      
       case 'longBreak':
-        setStats((prev) => ({
-          ...prev,
-          completedLongBreaks: prev.completedLongBreaks + 1,
-        }));
-        setCurrentPhase('focus');
+        statsUpdate = {
+          completedLongBreaks: stats.completedLongBreaks + 1,
+        };
+        nextPhase = 'focus';
         break;
     }
-    
-    // Auto-start next session if enabled
+    setPendingPhase(nextPhase);
+    setPendingStats(statsUpdate);
+  };
+
+  // Fungsi untuk melanjutkan siklus setelah acknowledge alarm
+  const handleAcknowledgeAlarm = () => {
+    console.log('handleAcknowledgeAlarm dipanggil');
+    stopAlarm();
+    setIsAlarmActive(false);
+    // Update stats dan phase
+    if (pendingStats) {
+      setStats((prev: any) => ({ ...prev, ...pendingStats }));
+    }
+    if (currentPhase === 'focus') {
+      setSessionCount((prev) => prev + 1);
+    }
+    if (pendingPhase) {
+      setCurrentPhase(pendingPhase);
+    }
+    setPendingPhase(null);
+    setPendingStats(null);
+    // Auto-start next session jika di-setting autoStart
     if (
       (currentPhase === 'focus' && settings.autoStartBreaks) ||
       ((currentPhase === 'shortBreak' || currentPhase === 'longBreak') && settings.autoStartPomodoros)
@@ -203,27 +234,32 @@ export const PomodoroProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       setTimeout(() => {
         setIsRunning(true);
         setLastTick(Date.now());
-      }, 1000);
+      }, 100);
     }
   };
-  
+
   const startTimer = () => {
+    // Stop any playing alarm when starting timer
+    stopAlarm();
+    setIsAlarmActive(false);
     if (isPaused) {
       setIsPaused(false);
     }
     setIsRunning(true);
     setLastTick(Date.now());
   };
-  
+
   const pauseTimer = () => {
     setIsRunning(false);
     setIsPaused(true);
   };
-  
+
   const resetTimer = () => {
+    // Stop any playing alarm when resetting timer
+    stopAlarm();
+    setIsAlarmActive(false);
     setIsRunning(false);
     setIsPaused(false);
-    
     let newDuration = 0;
     switch (currentPhase) {
       case 'focus':
@@ -236,14 +272,15 @@ export const PomodoroProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         newDuration = settings.longBreakDuration * 60;
         break;
     }
-    
     setTimeRemaining(newDuration);
   };
-  
+
   const skipToNext = () => {
+    // Stop any playing alarm when skipping
+    stopAlarm();
+    setIsAlarmActive(false);
     setIsRunning(false);
     setIsPaused(false);
-    
     // Transition to next phase without counting current one as completed
     if (currentPhase === 'focus') {
       if ((sessionCount + 1) % settings.sessionsBeforeLongBreak === 0) {
@@ -255,16 +292,16 @@ export const PomodoroProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       setCurrentPhase('focus');
     }
   };
-  
+
   const updateSettings = (newSettings: Partial<PomodoroSettings>) => {
     setSettings((prev) => ({ ...prev, ...newSettings }));
-    
+
     // If timer is not running, update current timer duration
     if (!isRunning) {
       resetTimer();
     }
   };
-  
+
   // Calculate progress
   const getTotalTime = () => {
     switch (currentPhase) {
@@ -276,9 +313,9 @@ export const PomodoroProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         return settings.longBreakDuration * 60;
     }
   };
-  
+
   const progress = 1 - timeRemaining / getTotalTime();
-  
+
   const contextValue: PomodoroContextType = {
     settings,
     stats,
@@ -293,8 +330,10 @@ export const PomodoroProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     resetTimer,
     skipToNext,
     updateSettings,
+    isAlarmActive,
+    handleAcknowledgeAlarm,
   };
-  
+
   return (
     <PomodoroContext.Provider value={contextValue}>
       {children}
@@ -308,4 +347,26 @@ export const usePomodoro = () => {
     throw new Error('usePomodoro must be used within a PomodoroProvider');
   }
   return context;
+};
+
+const stopAlarm = async () => {
+  console.log('stopAlarm dipanggil');
+  if (Platform.OS === 'web') {
+    if (webAudio) {
+      webAudio.pause();
+      webAudio.currentTime = 0;
+      webAudio = null;
+    }
+    return;
+  }
+  try {
+    if (sound) {
+      await sound.stopAsync();
+      await sound.unloadAsync();
+    }
+  } catch (error) {
+    console.error('Error stopping alarm:', error);
+  } finally {
+    setSound(null);
+  }
 };

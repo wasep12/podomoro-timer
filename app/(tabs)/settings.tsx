@@ -18,7 +18,7 @@ import Slider from '@/components/PlatformSlider';
 
 export default function SettingsScreen() {
   const { settings: pomodoroSettings, updateSettings: updatePomodoroSettings } = usePomodoro();
-  const { settings: appSettings, updateSettings: updateAppSettings, isDarkMode, playAlarm, stopAlarm, sound } = useAppSettings();
+  const { settings: appSettings, updateSettings: updateAppSettings, isDarkMode, playAlarm, stopAlarm } = useAppSettings();
   const { t, i18n } = useTranslation();
 
   // Local state for settings sliders
@@ -28,15 +28,11 @@ export default function SettingsScreen() {
   const [sessionsBeforeLongBreak, setSessionsBeforeLongBreak] = useState(
     pomodoroSettings.sessionsBeforeLongBreak
   );
+  const [sound, setSound] = useState<any>(null);
 
   const containerStyle = [
     styles.container,
     isDarkMode && styles.containerDark
-  ];
-
-  const textStyle = [
-    styles.text,
-    isDarkMode && styles.textDark
   ];
 
   // Apply settings changes
@@ -106,8 +102,8 @@ export default function SettingsScreen() {
                 key={lang.code}
                 style={[
                   styles.languageButton,
-                  appSettings.language === lang.code && styles.languageButtonActive,
                   isDarkMode && styles.languageButtonDark,
+                  appSettings.language === lang.code && styles.languageButtonActive,
                 ]}
                 onPress={() => {
                   updateAppSettings({ language: lang.code as 'en' | 'id' });
@@ -134,8 +130,8 @@ export default function SettingsScreen() {
                 key={value}
                 style={[
                   styles.themeButton,
-                  appSettings.theme === value && styles.themeButtonActive,
                   isDarkMode && styles.themeButtonDark,
+                  appSettings.theme === value && styles.themeButtonActive,
                 ]}
                 onPress={() => updateAppSettings({ theme: value as 'system' | 'light' | 'dark' })}
               >
@@ -251,8 +247,8 @@ export default function SettingsScreen() {
                 key={sound.value}
                 style={[
                   styles.alarmButton,
-                  appSettings.alarmSound === sound.value && styles.alarmButtonActive,
                   isDarkMode && styles.alarmButtonDark,
+                  appSettings.alarmSound === sound.value && styles.alarmButtonActive,
                 ]}
                 onPress={() => {
                   updateAppSettings({ alarmSound: sound.value });
@@ -294,7 +290,7 @@ export default function SettingsScreen() {
               minimumValue={0}
               maximumValue={1}
               value={appSettings.alarmVolume}
-              onValueChange={(value) => updateAppSettings({ alarmVolume: value })}
+              onValueChange={(value: number) => updateAppSettings({ alarmVolume: value })}
               minimumTrackTintColor={isDarkMode ? '#6366f1' : '#4f46e5'}
               maximumTrackTintColor={isDarkMode ? '#4b5563' : '#d1d5db'}
               thumbTintColor={isDarkMode ? '#6366f1' : '#4f46e5'}

@@ -35,6 +35,8 @@ const resources = {
       'Average Focus Time': 'Average Focus Time',
       'Total Sessions': 'Total Sessions',
       'Productivity Score': 'Productivity Score',
+      'Stop Alarm': 'Stop Alarm',
+      'Timer finished! Please stop the alarm to continue.': 'Timer finished! Please stop the alarm to continue.',
     },
   },
   id: {
@@ -70,6 +72,8 @@ const resources = {
       'Average Focus Time': 'Rata-rata Waktu Fokus',
       'Total Sessions': 'Total Sesi',
       'Productivity Score': 'Skor Produktivitas',
+      'Stop Alarm': 'Hentikan Alarm',
+      'Timer finished! Please stop the alarm to continue.': 'Waktu habis! Silakan hentikan alarm untuk melanjutkan.',
     },
   },
 };
