@@ -1,5 +1,6 @@
 import { Tabs } from 'expo-router';
-import { Timer, Settings, BarChart2, BookOpen } from 'lucide-react-native';
+import { Timer, Settings, BarChart2 } from 'lucide-react-native';
+import { Feather } from '@expo/vector-icons';
 import { useAppSettings } from '@/context/AppSettingsContext';
 
 export default function TabLayout() {
@@ -12,15 +13,32 @@ export default function TabLayout() {
         tabBarInactiveTintColor: '#94a3b8',
         tabBarStyle: {
           backgroundColor: isDarkMode ? '#1a1a1a' : '#ffffff',
-          borderTopWidth: 1,
-          borderTopColor: isDarkMode ? '#2d2d2d' : '#e2e8f0',
-          paddingBottom: 5,
-          paddingTop: 5,
-          height: 60,
+          borderTopWidth: 0,
+          elevation: 8,
+          shadowColor: isDarkMode ? '#000' : '#000',
+          shadowOffset: {
+            width: 0,
+            height: -2,
+          },
+          shadowOpacity: isDarkMode ? 0.3 : 0.1,
+          shadowRadius: 8,
+          paddingBottom: 12,
+          paddingTop: 8,
+          height: 75,
+          paddingHorizontal: 16,
+        },
+        tabBarItemStyle: {
+          paddingVertical: 4,
+          paddingHorizontal: 8,
         },
         tabBarLabelStyle: {
-          fontSize: 12,
-          fontWeight: '500',
+          fontSize: 11,
+          fontWeight: '600',
+          marginTop: 2,
+          marginBottom: 4,
+        },
+        tabBarIconStyle: {
+          marginTop: 4,
         },
         headerShown: false,
       }}>
@@ -36,6 +54,13 @@ export default function TabLayout() {
         options={{
           title: 'Stats',
           tabBarIcon: ({ color, size }) => <BarChart2 size={size} color={color} />,
+        }}
+      />
+      <Tabs.Screen
+        name="notes"
+        options={{
+          title: 'Notes',
+          tabBarIcon: ({ color, size }) => <Feather name="book" size={size} color={color} />,
         }}
       />
       <Tabs.Screen

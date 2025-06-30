@@ -9,6 +9,8 @@ import { useAppSettings } from '@/context/AppSettingsContext';
 import { VolumeX } from 'lucide-react-native';
 import { useTranslation } from 'react-i18next';
 import Toast from 'react-native-toast-message';
+import Animated, { useSharedValue, useAnimatedStyle, withTiming, withDelay, Easing } from 'react-native-reanimated';
+import { useFocusEffect } from '@react-navigation/native';
 
 export default function TimerScreen() {
   // Keep screen awake during active pomodoro sessions only on native platforms
@@ -34,29 +36,86 @@ export default function TimerScreen() {
     isAlarmActive,
     handleAcknowledgeAlarm,
   } = usePomodoro();
-  const { isDarkMode, stopAlarm } = useAppSettings();
+  const { isDarkMode, stopAlarm, settings: appSettings } = useAppSettings();
   const { t } = useTranslation();
+
+  // Animasi transisi
+  const headerOpacity = useSharedValue(0);
+  const headerTranslateY = useSharedValue(30);
+  const timerOpacity = useSharedValue(0);
+  const timerTranslateY = useSharedValue(50);
+  const controlsOpacity = useSharedValue(0);
+  const controlsTranslateY = useSharedValue(30);
+
+  // Fungsi untuk menjalankan animasi
+  const runAnimations = () => {
+    // Reset animasi
+    headerOpacity.value = 0;
+    headerTranslateY.value = 30;
+    timerOpacity.value = 0;
+    timerTranslateY.value = 50;
+    controlsOpacity.value = 0;
+    controlsTranslateY.value = 30;
+
+    // Animasi header
+    headerOpacity.value = withTiming(1, { duration: 600, easing: Easing.out(Easing.cubic) });
+    headerTranslateY.value = withTiming(0, { duration: 600, easing: Easing.out(Easing.cubic) });
+
+    // Animasi timer display dengan delay
+    timerOpacity.value = withDelay(200, withTiming(1, { duration: 800, easing: Easing.out(Easing.cubic) }));
+    timerTranslateY.value = withDelay(200, withTiming(0, { duration: 800, easing: Easing.out(Easing.cubic) }));
+
+    // Animasi controls dengan delay lebih lama
+    controlsOpacity.value = withDelay(400, withTiming(1, { duration: 600, easing: Easing.out(Easing.cubic) }));
+    controlsTranslateY.value = withDelay(400, withTiming(0, { duration: 600, easing: Easing.out(Easing.cubic) }));
+  };
+
+  // Jalankan animasi setiap kali screen mendapat focus
+  useFocusEffect(
+    React.useCallback(() => {
+      runAnimations();
+    }, [])
+  );
+
+  const headerAnimatedStyle = useAnimatedStyle(() => ({
+    opacity: headerOpacity.value,
+    transform: [{ translateY: headerTranslateY.value }],
+  }));
+
+  const timerAnimatedStyle = useAnimatedStyle(() => ({
+    opacity: timerOpacity.value,
+    transform: [{ translateY: timerTranslateY.value }],
+  }));
+
+  const controlsAnimatedStyle = useAnimatedStyle(() => ({
+    opacity: controlsOpacity.value,
+    transform: [{ translateY: controlsTranslateY.value }],
+  }));
 
   // Show toast when alarm is active
   useEffect(() => {
     if (isAlarmActive) {
+      const notificationsEnabled = appSettings.notificationsEnabled;
       Toast.show({
         type: 'error',
         position: 'top',
         autoHide: false,
-        text1: t('Alarm Sound'),
-        text2: t('Timer finished! Please stop the alarm to continue.'),
+        text1: notificationsEnabled ? t('Alarm Sound') : t('Timer'),
+        text2: notificationsEnabled
+          ? t('Timer finished! Please stop the alarm to continue.')
+          : t('Timer finished! Press to continue.'),
         topOffset: 60,
         props: {
           onStop: handleAcknowledgeAlarm,
           isDarkMode,
           t,
+          notificationsEnabled,
         },
       });
     } else {
       Toast.hide();
     }
-  }, [isAlarmActive, isDarkMode, t]);
+  }, [isAlarmActive, isDarkMode, t, appSettings.notificationsEnabled]);
 
   // Set background color based on current phase
   const getBackgroundStyle = () => {
@@ -101,28 +160,31 @@ export default function TimerScreen() {
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
-        <View style={styles.header}>
+        <Animated.View style={[styles.header, headerAnimatedStyle]}>
           <Text style={[styles.title, isDarkMode && styles.titleDark]}>Pomodoro Timer</Text>
-        </View>
+        </Animated.View>
 
-        <View style={styles.timerSection}>
+        <Animated.View style={[styles.timerSection, timerAnimatedStyle]}>
           <TimerDisplay
             timeRemaining={timeRemaining}
             progress={progress}
             phase={currentPhase}
             sessionCount={sessionCount}
             totalSessions={settings.sessionsBeforeLongBreak}
+            isRunning={isRunning}
           />
 
-          <TimerControls
-            isRunning={isRunning}
-            isPaused={isPaused}
-            onStart={startTimer}
-            onPause={pauseTimer}
-            onReset={resetTimer}
-            onSkip={skipToNext}
-            phase={currentPhase}
-          />
+          <Animated.View style={controlsAnimatedStyle}>
+            <TimerControls
+              isRunning={isRunning}
+              isPaused={isPaused}
+              onStart={startTimer}
+              onPause={pauseTimer}
+              onReset={resetTimer}
+              onSkip={skipToNext}
+              phase={currentPhase}
+            />
+          </Animated.View>
 
           {/* Stop Alarm Button - shows when timer is not running */}
           {!isRunning && timeRemaining === 0 && !isAlarmActive && (
@@ -142,7 +204,7 @@ export default function TimerScreen() {
               </Text>
             </TouchableOpacity>
           )}
-        </View>
+        </Animated.View>
       </ScrollView>
 
       {/* Custom Toast Component */}
@@ -178,7 +240,9 @@ export default function TimerScreen() {
                 }
               }}
             >
-              <Text style={styles.toastButtonText}>{t('Stop Alarm')}</Text>
+              <Text style={styles.toastButtonText}>
+                {internal.props?.notificationsEnabled ? t('Stop Alarm') : t('Continue')}
+              </Text>
             </TouchableOpacity>
           </View>
         )

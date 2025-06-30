@@ -1,10 +1,11 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import CircularProgress from './CircularProgress';
 import { formatTime } from '@/utils/timeUtils';
 import { TimerPhase } from '@/context/PomodoroContext';
 import { useTranslation } from 'react-i18next';
 import { useAppSettings } from '@/context/AppSettingsContext';
+import Animated, { useSharedValue, useAnimatedStyle, withSequence, withSpring } from 'react-native-reanimated';
 
 interface TimerDisplayProps {
   timeRemaining: number;
@@ -12,6 +13,7 @@ interface TimerDisplayProps {
   phase: TimerPhase;
   sessionCount: number;
   totalSessions: number;
+  isRunning: boolean;
 }
 
 const TimerDisplay: React.FC<TimerDisplayProps> = ({
@@ -20,9 +22,25 @@ const TimerDisplay: React.FC<TimerDisplayProps> = ({
   phase,
   sessionCount,
   totalSessions,
+  isRunning,
 }) => {
   const { t } = useTranslation();
   const { isDarkMode } = useAppSettings();
+
+  // Animasi scale pada angka timer - hanya saat timer berjalan
+  const scale = useSharedValue(1);
+  useEffect(() => {
+    if (isRunning) {
+      scale.value = withSequence(
+        withSpring(1.15, { damping: 5 }),
+        withSpring(1)
+      );
+    }
+  }, [timeRemaining, isRunning]);
+  const animatedStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: scale.value }],
+  }));
+
   // Set color based on current phase
   const getPhaseColor = () => {
     switch (phase) {
@@ -64,7 +82,9 @@ const TimerDisplay: React.FC<TimerDisplayProps> = ({
           color={phaseColor}
         />
         <View style={styles.timeTextContainer}>
-          <Text style={[styles.timeText, isDarkMode && styles.timeTextDark]}>{formatTime(timeRemaining)}</Text>
+          <Animated.Text style={[styles.timeText, isDarkMode && styles.timeTextDark, animatedStyle]}>
+            {formatTime(timeRemaining)}
+          </Animated.Text>
         </View>
       </View>
 

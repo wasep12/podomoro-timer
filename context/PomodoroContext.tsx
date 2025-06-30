@@ -1,7 +1,7 @@
 import React, { createContext, useState, useContext, useEffect } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useAppSettings } from './AppSettingsContext';
-import { Platform } from 'react';
+import { Platform } from 'react-native';
 
 export type TimerPhase = 'focus' | 'shortBreak' | 'longBreak';
 
@@ -347,26 +347,4 @@ export const usePomodoro = () => {
     throw new Error('usePomodoro must be used within a PomodoroProvider');
   }
   return context;
-};
-
-const stopAlarm = async () => {
-  console.log('stopAlarm dipanggil');
-  if (Platform.OS === 'web') {
-    if (webAudio) {
-      webAudio.pause();
-      webAudio.currentTime = 0;
-      webAudio = null;
-    }
-    return;
-  }
-  try {
-    if (sound) {
-      await sound.stopAsync();
-      await sound.unloadAsync();
-    }
-  } catch (error) {
-    console.error('Error stopping alarm:', error);
-  } finally {
-    setSound(null);
-  }
 };

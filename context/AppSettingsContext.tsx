@@ -1,8 +1,8 @@
 import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { useColorScheme } from 'react-native';
+import { useColorScheme, Platform } from 'react-native';
 import * as Notifications from 'expo-notifications';
-import { Platform } from 'react-native';
+import { Audio } from 'expo-av';
 
 interface AppSettings {
   language: 'en' | 'id';
@@ -10,6 +10,8 @@ interface AppSettings {
   alarmSound: string;
   alarmVolume: number;
   notificationsEnabled: boolean;
+  autoStartBreaks: boolean;
+  autoStartSessions: boolean;
 }
 
 interface AppSettingsContextType {
@@ -26,6 +28,8 @@ const defaultSettings: AppSettings = {
   alarmSound: 'default',
   alarmVolume: 0.7,
   notificationsEnabled: true,
+  autoStartBreaks: false,
+  autoStartSessions: false,
 };
 
 const defaultAlarms = {
@@ -36,10 +40,6 @@ const defaultAlarms = {
 };
 
 let webAudio: HTMLAudioElement | null = null;
-let Audio: any = null;
-if (Platform.OS !== 'web') {
-  Audio = require('expo-av').Audio;
-}
 
 const AppSettingsContext = createContext<AppSettingsContextType | undefined>(undefined);
 
@@ -89,12 +89,18 @@ export const AppSettingsProvider: React.FC<{ children: React.ReactNode }> = ({ c
           shouldShowAlert: true,
           shouldPlaySound: true,
           shouldSetBadge: false,
+          shouldShowBanner: true,
+          shouldShowList: true,
         }),
       });
     }
   }, []);
 
   const playAlarm = async () => {
+    if (!settings.notificationsEnabled) {
+      console.log('playAlarm: notifications disabled, skip sound');
+      return;
+    }
     if (Platform.OS === 'web') {
       if (webAudio) {
         webAudio.pause();
@@ -108,10 +114,12 @@ export const AppSettingsProvider: React.FC<{ children: React.ReactNode }> = ({ c
         gentle: require('../assets/sounds/gentle.mp3').default,
       };
       const src = soundMap[settings.alarmSound] || soundMap.default;
-      webAudio = new Audio(src);
-      webAudio.volume = settings.alarmVolume;
-      webAudio.loop = true;
-      webAudio.play();
+      webAudio = new window.Audio(src);
+      if (webAudio) {
+        webAudio.volume = settings.alarmVolume;
+        webAudio.loop = true;
+        webAudio.play();
+      }
       console.log('playAlarm (web): play', src);
       return;
     }
@@ -122,28 +130,26 @@ export const AppSettingsProvider: React.FC<{ children: React.ReactNode }> = ({ c
         await soundRef.current.unloadAsync();
         soundRef.current = null;
       }
-      if (Audio) {
-        const { sound: newSound } = await Audio.Sound.createAsync(
-          defaultAlarms[settings.alarmSound as keyof typeof defaultAlarms],
-          {
-            shouldPlay: true,
-            volume: settings.alarmVolume,
-            isLooping: true,
-          }
-        );
-        soundRef.current = newSound;
-        setSound(newSound);
-        console.log('playAlarm: new sound instance created (ref)', newSound);
-        // Show notification on mobile
-        if (Platform.OS !== 'web' && settings.notificationsEnabled) {
-          await Notifications.scheduleNotificationAsync({
-            content: {
-              title: 'Time is up!',
-              body: 'Your timer has finished.',
-            },
-            trigger: null,
-          });
+      const { sound: newSound } = await Audio.Sound.createAsync(
+        defaultAlarms[settings.alarmSound as keyof typeof defaultAlarms],
+        {
+          shouldPlay: true,
+          volume: settings.alarmVolume,
+          isLooping: true,
         }
+      );
+      soundRef.current = newSound;
+      setSound(newSound);
+      console.log('playAlarm: new sound instance created (ref)', newSound);
+      // Show notification on mobile
+      if ((Platform.OS === 'ios' || Platform.OS === 'android') && settings.notificationsEnabled) {
+        await Notifications.scheduleNotificationAsync({
+          content: {
+            title: 'Time is up!',
+            body: 'Your timer has finished.',
+          },
+          trigger: null,
+        });
       }
     } catch (error) {
       console.error('Error playing alarm:', error);
