@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "bolt-expo-nativewind",
+    "name": "Podomoro Time",
     "slug": "bolt-expo-nativewind",
     "version": "1.0.0",
     "orientation": "portrait",
@@ -29,6 +29,12 @@
       "eas": {
         "projectId": "5c5fa21f-e462-4b8b-a21b-230d7a1bac69"
       }
+    },
+    "android": {
+      "package": "com.wasep.boltexponativewind",
+      "compileSdkVersion": 35,
+      "targetSdkVersion": 35,
+      "buildToolsVersion": "35.0.0"
     }
   }
 }
