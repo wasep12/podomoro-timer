@@ -21,7 +21,7 @@
       "expo-font",
       "expo-web-browser",
       "expo-av",
-      "expo-keep-awake"
+      "expo-notifications"
     ],
     "experiments": {
       "typedRoutes": true
@@ -34,10 +34,6 @@
     },
     "android": {
       "package": "com.wasep.boltexponativewind",
-      "compileSdkVersion": 35,
-      "targetSdkVersion": 35,
-      "buildToolsVersion": "35.0.0",
-      "minSdkVersion": 24,
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/icon.png",
         "backgroundColor": "#ffffff"
